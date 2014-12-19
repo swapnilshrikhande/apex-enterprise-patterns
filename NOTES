@@ -1,0 +1,114 @@
+Service Layer:
+1. Even if not using SOC think while binding to a particular context.
+2. How to begin coding towards SOC ?
+class Controller {
+	String paymentTypeViewState;
+	Decimal amountTypeViewState;
+	
+	//dependent on viewstate | VF page technology
+	processPayment(){
+		//process using paymentTypeViewState;
+	}
+}
+
+class Controller {
+	String paymentTypeViewState;
+	Decimal amountTypeViewState;
+	
+	//dependent on viewstate | VF page technology
+	public processPayment(){
+		try{
+			processPayment(paymentTypeViewState,amountTypeViewState;
+		} catch (Exception ex) {
+			//addError to page
+		}
+	}
+	
+	//independent
+	static processPayment(Decimal amountType,String paymentType){
+		//process using paymentTypeViewState;
+	}
+}
+
+Design Considerations
+1. naming : 
+Class names should end in Service. 
+Method names generic, not specific to client. processPayment() vs processVisaPayment()
+
+2.Platform / Caller Sympathy  : Bulkification : processPayment(List<Transactions> transactionsList)
+3.Marshalling : Leave error handling and messaging to client of sevice layer.
+VF page : addError to page
+Schedule Jobs : Send emails
+4. Compound Services : Prefer macro services to granular services to avoid transactional issues.
+5. Transaction Management and Statelessness : 
+encapsulate database operations and service state within the scope of the service layer.
+
+Will they be left dirty if the transaction fails? For example, if you commit object A and object B in a transaction and object B fails to commit, the database rolls back but object A is left with an Id populated which may cause trouble for the client. One technique is to clone any objects passed into the service at the start and let your service act on the clones leaving the original objects clean in case of failure.
+
+How the state changed by service layer will affect other layers. clone objects and work on clone rather than original objects.
+Add database.rollback statements.
+
+NEVER CATCH EXCEPTIONS IN SERVICE LAYER ALWAYS THROW THEM.
+
+
+6. Configuration : Make service methods configurables via optional options parameter. 
+   Turn on or off functionalities which are not required.
+   
+   If we apply the configuration design consideration described earlier. You might want to add an overloaded version of the above service with an Options parameter that allows the caller to instruct the service to skip committing the work. Then by returning the records this would allow the client to implement a ‘preview’ of the discounts that would be applied.
+   
+   public static List<Opportunity> applyDiscounts(Set<ID> opportunityIds, Decimal discountPercentage, Options config)
+   
+Batch Apex Example Note :
+Because it runs in the background over potentially several minutes or hours, the data in the SObject records passed in can be quite stale. Due to the platform caching the original SOQL resultset that started the job. Thus typically its best to requery.
+
+
+Domain Layer   
+
+Who uses the Domain layer?
+1. Database Manipulation. CRUD
+2. Service Operations. The Service layer implementations should be easily able to identify and reuse code relating to one or more of the objects each of its operations interact with via Domain classes.
+
+3. Extension by Containment. (Decorator Pattern)
+  As discussed above domain logic must encapsulate both data and behaviour. Apex represents data as SObject’s. These cannot be extended, but can be wrapped or contained by another class, which can complement this data with appropriate behavioural code(methods, properties etc), Much like a StandardSetController contains the records being operated on in Visualforce.
+
+4. naming convention : class name should map to object names.
+
+5.Object Oriented Programming.  : Keep common behavioural aspects in common base Domain class.
+
+6. SOC : defaulting -> validation -> other logic
+i and ii should be available in non-db-transactional contexts too.
+
+
+Creating Domain Classes
+1. The SObjectDomain class used in the trigger code above, is actually a base class for all domain classes, providing some useful functionality, such as object security.
+
+2. Use interface 
+3. Use class hierarchies for representing complex domains.
+
+Selector Layer | Data Mapper
+
+1. Query inconsistencies
+Query inconsistencies, the same queries being made from different places for the same information and/or criteria (or at least subtle variants of the same) can lead to inconsistencies in your application. Perhaps certain criteria need to be applied and get lost as code is copy pasted around over time. 
+Think of query as a piece of business logic.
+say new developer start working on same codebase he dont know the common criteria's. 
+
+2. Query data inconsistencies : Avoid extra queries just to query some fields. 
+
+MOST Important
+3. Security inconsistencies, Salesforce requires that all Apex code adheres to the object security of the running user. Unfortunately, currently Apex runs at System Level, making it the developer’s responsibility to check this ahead of making the query. Fortunately it’s not a lot of Apex code to do this, but it can get overlooked easily and is not that easily tested for in unit tests.
+
+A Selector should concern itself with providing the following.
+
+Visibility, Reusability and Maintainability :
+Compile time references
+compiled queries : performance
+
+
+
+ 
+ 
+
+
+
+
+
